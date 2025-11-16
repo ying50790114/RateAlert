@@ -1,100 +1,105 @@
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>匯率與黃金價格</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 20px;
-            background-color: #f9f9f9;
-        }
-        h1, h2 {
-            text-align: center;
-        }
-        .container {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 40px;
-        }
-        table {
-            border-collapse: collapse;
-            margin: 0 auto;
-            width: 300px;
-            text-align: center;
-        }
-        th, td {
-            border: 1px solid #ccc;
-            padding: 8px 12px;
-        }
-        iframe {
-            border: 1px solid #ccc;
-            width: 600px;
-            height: 500px;
-        }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>匯率與黃金價格</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f9f9f9;
+      margin: 20px;
+      text-align: center;
+    }
+    h1 {
+      margin-bottom: 40px;
+    }
+    .container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 40px;
+    }
+    table {
+      border-collapse: collapse;
+      width: 300px;
+      text-align: center;
+      margin: 0 auto;
+    }
+    th, td {
+      border: 1px solid #ccc;
+      padding: 8px 12px;
+    }
+  </style>
 </head>
 <body>
-    <h1>匯率與黃金價格</h1>
-    <div class="container">
-        <div>
-            <h2>匯率 (USD / JPY)</h2>
-            <table id="exchangeTable">
-                <thead>
-                    <tr>
-                        <th>幣別</th>
-                        <th>現金買入</th>
-                        <th>現金賣出</th>
-                        <th>即期買入</th>
-                        <th>即期賣出</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr><td colspan="5">載入中...</td></tr>
-                </tbody>
-            </table>
-        </div>
-        <div>
-            <h2>黃金價格</h2>
-            <iframe src="https://rate.bot.com.tw/gold?Lang=zh-TW"></iframe>
-        </div>
+  <h1>美元 / 日圓匯率 & 黃金價格</h1>
+
+  <div class="container">
+    <div>
+      <h2>匯率 (以新台幣為基準)</h2>
+      <table id="exchangeTable">
+        <thead>
+          <tr>
+            <th>幣別</th>
+            <th>匯率</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td colspan="2">載入中...</td></tr>
+        </tbody>
+      </table>
     </div>
 
-    <script>
-        const proxyUrl = "https://api.allorigins.win/get?url=";
-        const targetUrl = encodeURIComponent("https://rate.bot.com.tw/xrt?Lang=zh-TW");
+    <div>
+      <h2>黃金價格 (USD / oz)</h2>
+      <table id="goldTable">
+        <thead>
+          <tr>
+            <th>商品</th>
+            <th>價格</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td colspan="2">載入中...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
 
-        fetch(proxyUrl + targetUrl)
-            .then(response => response.json())
-            .then(data => {
-                const parser = new DOMParser();
-                const doc = parser.parseFromString(data.contents, "text/html");
-                const rows = Array.from(doc.querySelectorAll("table tbody tr"));
-                const tableBody = document.querySelector("#exchangeTable tbody");
-                tableBody.innerHTML = "";
+  <script>
+    // 匯率 API (免費)
+    fetch('https://api.exchangerate.host/latest?base=TWD&symbols=USD,JPY')
+      .then(res => res.json())
+      .then(data => {
+        const tableBody = document.querySelector("#exchangeTable tbody");
+        tableBody.innerHTML = "";
+        for (const [currency, rate] of Object.entries(data.rates)) {
+          const tr = document.createElement("tr");
+          tr.innerHTML = `<td>${currency}</td><td>${rate.toFixed(4)}</td>`;
+          tableBody.appendChild(tr);
+        }
+      })
+      .catch(err => {
+        console.error("匯率載入失敗:", err);
+        document.querySelector("#exchangeTable tbody").innerHTML = "<tr><td colspan='2'>無法載入資料</td></tr>";
+      });
 
-                rows.forEach(row => {
-                    const currency = row.querySelector(".hidden-phone").innerText.trim();
-                    if (currency === "美金 (USD)" || currency === "日圓 (JPY)") {
-                        const cells = row.querySelectorAll("td");
-                        const tr = document.createElement("tr");
-                        tr.innerHTML = `
-                            <td>${currency}</td>
-                            <td>${cells[1].innerText}</td>
-                            <td>${cells[2].innerText}</td>
-                            <td>${cells[3].innerText}</td>
-                            <td>${cells[4].innerText}</td>
-                        `;
-                        tableBody.appendChild(tr);
-                    }
-                });
-            })
-            .catch(err => {
-                console.error("抓取匯率失敗:", err);
-                document.querySelector("#exchangeTable tbody").innerHTML = "<tr><td colspan='5'>無法載入資料</td></tr>";
-            });
-    </script>
+    // 黃金價格 API (免費)
+    fetch('https://data-asg.goldprice.org/dbXRates/USD')
+      .then(res => res.json())
+      .then(data => {
+        const tableBody = document.querySelector("#goldTable tbody");
+        tableBody.innerHTML = "";
+        const price = data.items[0].xauPrice; // USD/oz
+        const tr = document.createElement("tr");
+        tr.innerHTML = `<td>Gold</td><td>${price.toFixed(2)}</td>`;
+        tableBody.appendChild(tr);
+      })
+      .catch(err => {
+        console.error("黃金價格載入失敗:", err);
+        document.querySelector("#goldTable tbody").innerHTML = "<tr><td colspan='2'>無法載入資料</td></tr>";
+      });
+  </script>
 </body>
 </html>
