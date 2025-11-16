@@ -1,6 +1,6 @@
 {
-  "name": "我的網頁App",
-  "short_name": "網頁App",
+  "name": "Rate Tracker",
+  "short_name": "WebApp",
   "start_url": "/index.html",
   "display": "standalone",
   "background_color": "#ffffff",
