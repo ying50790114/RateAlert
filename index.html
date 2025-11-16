@@ -10,13 +10,15 @@
   .container { display:flex; flex-direction:column; align-items:center; gap:40px; }
   table { border-collapse: collapse; width: 400px; text-align:center; margin:0 auto; }
   th, td { border:1px solid #ccc; padding:8px 12px; }
+  .update-time { margin-bottom:10px; font-size:0.9rem; color:#555; }
 </style>
 </head>
 <body>
 <h1>臺灣銀行-匯率與黃金價格</h1>
 <div class="container">
   <div>
-    <h2>匯率</h2>
+    <h2>匯率 (USD / JPY)</h2>
+    <div id="exchangeTime" class="update-time">載入中...</div>
     <table id="exchangeTable">
       <thead>
         <tr>
@@ -33,6 +35,7 @@
 
   <div>
     <h2>黃金價格 (台幣/公克)</h2>
+    <div id="goldTime" class="update-time">載入中...</div>
     <table id="goldTable">
       <thead>
         <tr>
@@ -68,13 +71,17 @@ fetch(proxyUrl + rateUrl)
       tableBody.appendChild(tr);
     }
   });
+  // 更新匯率抓取時間
+  const now = new Date();
+  document.querySelector("#exchangeTime").innerText = "更新時間：" + now.toLocaleString();
 })
 .catch(err => { 
   console.error(err); 
   document.querySelector("#exchangeTable tbody").innerHTML="<tr><td colspan='5'>無法載入資料</td></tr>"; 
+  document.querySelector("#exchangeTime").innerText = "";
 });
 
-// 黃金價格抓取，簡化成 2x3，只顯示第一個「黃金存摺」
+// 黃金價格抓取
 const goldUrl = encodeURIComponent("https://rate.bot.com.tw/gold?Lang=zh-TW");
 fetch(proxyUrl + goldUrl)
 .then(res => res.json())
@@ -89,10 +96,7 @@ fetch(proxyUrl + goldUrl)
     const row = rows[i];
     const name = row.querySelector("td")?.textContent.trim();
     if(name === "黃金存摺") {
-      // 賣出價格在本列第三個 td
       const cashSell = row.querySelector("td.text-right")?.textContent.trim().replace(/[^\d.]/g,'') || '';
-
-      // 買入價格在下一列第三個 td
       const nextRow = rows[i+1];
       let cashBuy = '';
       if(nextRow){
@@ -101,17 +105,20 @@ fetch(proxyUrl + goldUrl)
           cashBuy = tds[2].textContent.trim().replace(/[^\d.]/g,'');
         }
       }
-
       const tr = document.createElement("tr");
       tr.innerHTML = `<td>${name}</td><td>${cashBuy}</td><td>${cashSell}</td>`;
       tableBody.appendChild(tr);
-      break; // 只取第一筆黃金存摺
+      break;
     }
   }
+  // 更新黃金抓取時間
+  const now = new Date();
+  document.querySelector("#goldTime").innerText = "更新時間：" + now.toLocaleString();
 })
 .catch(err => { 
   console.error(err); 
   document.querySelector("#goldTable tbody").innerHTML="<tr><td colspan='3'>無法載入資料</td></tr>"; 
+  document.querySelector("#goldTime").innerText = "";
 });
 </script>
 </body>
