@@ -11,19 +11,15 @@
   table { border-collapse: collapse; width: 400px; text-align:center; margin:0 auto; }
   th, td { border:1px solid #ccc; padding:8px 12px; }
   .update-time { margin-bottom:10px; font-size:0.9rem; color:#555; }
+  #subscribeBtn { margin: 20px 0; padding: 10px 24px; border: none; border-radius: 4px; background: #3897f0; color: #fff; font-size: 1.1rem; cursor: pointer; }
+  #subscribeBtn:disabled { background-color: #aaa; cursor: not-allowed; }
 </style>
 <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
-<script>
-  window.OneSignalDeferred = window.OneSignalDeferred || [];
-  OneSignalDeferred.push(async function(OneSignal) {
-    await OneSignal.init({
-      appId: "2e011829-ac0c-4e0e-923b-a3fc41c0e66a",
-    });
-  });
-</script>
 </head>
 <body>
 <h1>臺灣銀行-匯率與黃金價格</h1>
+<button id="subscribeBtn">訂閱銀行通知</button>
+<div id="subscribeStatus" style="color: #3897f0; margin-bottom: 12px;"></div>
 <div class="container">
   <div>
     <h2>匯率</h2>
@@ -85,9 +81,19 @@ fetch(proxyUrl + rateUrl)
     const currency = row.querySelector(".hidden-phone")?.innerText.trim();
     if(currency === "美金 (USD)" || currency === "日圓 (JPY)") {
       const cells = row.querySelectorAll("td");
-      const tr = document.createElement("tr");
-      tr.innerHTML = `<td>${currency}</td><td>${cells[1].innerText}</td><td>${cells[2].innerText}</td><td>${cells[3].innerText}</td><td>${cells[4].innerText}</td>`;
-      tableBody.appendChild(tr);
+      if (cells.length >= 5) {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `<td>${currency}</td>
+          <td>${cells[1].innerText}</td>
+          <td>${cells[2].innerText}</td>
+          <td>${cells[3].innerText}</td>
+          <td>${cells[4].innerText}</td>`;
+        tableBody.appendChild(tr);
+      } else {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `<td colspan="5">來源資料格式有誤</td>`;
+        tableBody.appendChild(tr);
+      }
     }
   });
   // 更新匯率抓取時間
@@ -115,15 +121,10 @@ fetch(proxyUrl + goldUrl)
     const row = rows[i];
     const name = row.querySelector("td")?.textContent.trim();
     if(name === "黃金存摺") {
-      const cashSell = row.querySelector("td.text-right")?.textContent.trim().replace(/[^\d.]/g,'') || '';
-      const nextRow = rows[i+1];
-      let cashBuy = '';
-      if(nextRow){
-        const tds = nextRow.querySelectorAll("td");
-        if(tds.length >= 3){
-          cashBuy = tds[2].textContent.trim().replace(/[^\d.]/g,'');
-        }
-      }
+      const tds = row.querySelectorAll("td");
+      // 依台銀黃金存摺結構（請視實際資料微調索引）
+      let cashBuy = tds.length > 1 ? tds[1].textContent.trim().replace(/[^\d.]/g,'') : '';
+      let cashSell = tds.length > 2 ? tds[2].textContent.trim().replace(/[^\d.]/g,'') : '';
       const tr = document.createElement("tr");
       tr.innerHTML = `<td>${name}</td><td>${cashBuy}</td><td>${cashSell}</td>`;
       tableBody.appendChild(tr);
@@ -138,6 +139,46 @@ fetch(proxyUrl + goldUrl)
   console.error(err); 
   document.querySelector("#goldTable tbody").innerHTML="<tr><td colspan='3'>無法載入資料</td></tr>"; 
   document.querySelector("#goldTime").innerText = "";
+});
+
+
+//--------------------OneSignal互動授權-------------------
+document.addEventListener("DOMContentLoaded", function(){
+  const subscribeBtn = document.getElementById("subscribeBtn");
+  const subscribeStatus = document.getElementById("subscribeStatus");
+
+  // 檢查是否已經訂閱，或已授權/封鎖
+  function checkPermission() {
+    if (!window.OneSignal || !window.OneSignal.Notifications) return; // 尚未載入SDK
+    window.OneSignal.Notifications.permissionStatus().then((status) => {
+      if (status === 'granted') {
+        subscribeBtn.disabled = true;
+        subscribeStatus.innerText = "您已訂閱通知，感謝！";
+      } else if (status === 'denied') {
+        subscribeBtn.disabled = true;
+        subscribeStatus.innerText = "您已拒絕通知，請於瀏覽器設定中解除封鎖後重載本頁。";
+      } else {
+        subscribeBtn.disabled = false;
+        subscribeStatus.innerText = "";
+      }
+    });
+  }
+
+  subscribeBtn.addEventListener("click", function () {
+    subscribeBtn.disabled = true;
+    subscribeStatus.innerText = "請於瀏覽器上方彈窗選擇允許通知。";
+    window.OneSignalDeferred = window.OneSignalDeferred || [];
+    OneSignalDeferred.push(async function(OneSignal) {
+      await OneSignal.init({
+        appId: "2e011829-ac0c-4e0e-923b-a3fc41c0e66a",
+      });
+      await OneSignal.Notifications.requestPermission();
+      // OneSignal訂閱註冊
+      checkPermission();
+    });
+  });
+
+  setTimeout(checkPermission, 3000); // SDK載入後再檢查
 });
 </script>
 </body>
