@@ -1,124 +1,96 @@
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>匯率與黃金價格</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      background-color: #f9f9f9;
-      margin: 20px;
-      text-align: center;
-    }
-    h1 {
-      margin-bottom: 40px;
-    }
-    .container {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 40px;
-    }
-    table {
-      border-collapse: collapse;
-      width: 350px;
-      text-align: center;
-      margin: 0 auto;
-    }
-    th, td {
-      border: 1px solid #ccc;
-      padding: 8px 12px;
-    }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>匯率與黃金價格 (台幣/公克)</title>
+<style>
+  body { font-family: Arial, sans-serif; background-color: #f9f9f9; margin:20px; text-align:center; }
+  h1 { margin-bottom:40px; }
+  .container { display:flex; flex-direction:column; align-items:center; gap:40px; }
+  table { border-collapse: collapse; width: 400px; text-align:center; margin:0 auto; }
+  th, td { border:1px solid #ccc; padding:8px 12px; }
+</style>
 </head>
 <body>
-  <h1>美元 / 日圓匯率 & 黃金價格</h1>
-
-  <div class="container">
-    <div>
-      <h2>匯率 (台銀網站抓取)</h2>
-      <table id="exchangeTable">
-        <thead>
-          <tr>
-            <th>幣別</th>
-            <th>現金買入</th>
-            <th>現金賣出</th>
-            <th>即期買入</th>
-            <th>即期賣出</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr><td colspan="5">載入中...</td></tr>
-        </tbody>
-      </table>
-    </div>
-
-    <div>
-      <h2>黃金價格 (USD / oz)</h2>
-      <table id="goldTable">
-        <thead>
-          <tr>
-            <th>商品</th>
-            <th>價格</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr><td colspan="2">載入中...</td></tr>
-        </tbody>
-      </table>
-    </div>
+<h1>美元 / 日圓匯率 & 黃金價格 (台幣/公克)</h1>
+<div class="container">
+  <div>
+    <h2>匯率 (USD / JPY)</h2>
+    <table id="exchangeTable">
+      <thead>
+        <tr>
+          <th>幣別</th>
+          <th>現金買入</th>
+          <th>現金賣出</th>
+          <th>即期買入</th>
+          <th>即期賣出</th>
+        </tr>
+      </thead>
+      <tbody><tr><td colspan="5">載入中...</td></tr></tbody>
+    </table>
   </div>
 
-  <script>
-    // 匯率抓取 (USD / JPY)
-    const proxyUrl = "https://api.allorigins.win/get?url=";
-    const targetUrl = encodeURIComponent("https://rate.bot.com.tw/xrt?Lang=zh-TW");
+  <div>
+    <h2>黃金價格 (台幣/公克)</h2>
+    <table id="goldTable">
+      <thead>
+        <tr>
+          <th>商品</th>
+          <th>買入</th>
+          <th>賣出</th>
+        </tr>
+      </thead>
+      <tbody><tr><td colspan="3">載入中...</td></tr></tbody>
+    </table>
+  </div>
+</div>
 
-    fetch(proxyUrl + targetUrl)
-      .then(res => res.json())
-      .then(data => {
-        const parser = new DOMParser();
-        const doc = parser.parseFromString(data.contents, "text/html");
-        const rows = Array.from(doc.querySelectorAll("table tbody tr"));
-        const tableBody = document.querySelector("#exchangeTable tbody");
-        tableBody.innerHTML = "";
+<script>
+const proxyUrl = "https://api.allorigins.win/get?url=";
 
-        rows.forEach(row => {
-          const currency = row.querySelector(".hidden-phone").innerText.trim();
-          if (currency === "美金 (USD)" || currency === "日圓 (JPY)") {
-            const cells = row.querySelectorAll("td");
-            const tr = document.createElement("tr");
-            tr.innerHTML = `
-              <td>${currency}</td>
-              <td>${cells[1].innerText}</td>
-              <td>${cells[2].innerText}</td>
-              <td>${cells[3].innerText}</td>
-              <td>${cells[4].innerText}</td>
-            `;
-            tableBody.appendChild(tr);
-          }
-        });
-      })
-      .catch(err => {
-        console.error("匯率載入失敗:", err);
-        document.querySelector("#exchangeTable tbody").innerHTML = "<tr><td colspan='5'>無法載入資料</td></tr>";
-      });
+// 匯率抓取 (美金 / 日圓)
+const rateUrl = encodeURIComponent("https://rate.bot.com.tw/xrt?Lang=zh-TW");
+fetch(proxyUrl + rateUrl)
+.then(res => res.json())
+.then(data => {
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(data.contents, "text/html");
+  const rows = Array.from(doc.querySelectorAll("table tbody tr"));
+  const tableBody = document.querySelector("#exchangeTable tbody");
+  tableBody.innerHTML = "";
+  rows.forEach(row => {
+    const currency = row.querySelector(".hidden-phone").innerText.trim();
+    if(currency === "美金 (USD)" || currency === "日圓 (JPY)") {
+      const cells = row.querySelectorAll("td");
+      const tr = document.createElement("tr");
+      tr.innerHTML = `<td>${currency}</td><td>${cells[1].innerText}</td><td>${cells[2].innerText}</td><td>${cells[3].innerText}</td><td>${cells[4].innerText}</td>`;
+      tableBody.appendChild(tr);
+    }
+  });
+})
+.catch(err => { console.error(err); document.querySelector("#exchangeTable tbody").innerHTML="<tr><td colspan='5'>無法載入資料</td></tr>"; });
 
-    // 黃金價格 API (免費)
-    fetch('https://data-asg.goldprice.org/dbXRates/USD')
-      .then(res => res.json())
-      .then(data => {
-        const tableBody = document.querySelector("#goldTable tbody");
-        tableBody.innerHTML = "";
-        const price = data.items[0].xauPrice; // USD/oz
-        const tr = document.createElement("tr");
-        tr.innerHTML = `<td>Gold</td><td>${price.toFixed(2)}</td>`;
-        tableBody.appendChild(tr);
-      })
-      .catch(err => {
-        console.error("黃金價格載入失敗:", err);
-        document.querySelector("#goldTable tbody").innerHTML = "<tr><td colspan='2'>無法載入資料</td></tr>";
-      });
-  </script>
+// 黃金價格抓取 (台幣/公克)
+const goldUrl = encodeURIComponent("https://rate.bot.com.tw/gold?Lang=zh-TW");
+fetch(proxyUrl + goldUrl)
+.then(res => res.json())
+.then(data => {
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(data.contents, "text/html");
+  const rows = Array.from(doc.querySelectorAll("table tbody tr"));
+  const tableBody = document.querySelector("#goldTable tbody");
+  tableBody.innerHTML = "";
+  rows.forEach(row => {
+    const name = row.querySelector("td:nth-child(1)").innerText.trim();
+    const cashBuy = row.querySelector("td:nth-child(2)").innerText.trim();
+    const cashSell = row.querySelector("td:nth-child(3)").innerText.trim();
+    const tr = document.createElement("tr");
+    tr.innerHTML = `<td>${name}</td><td>${cashBuy}</td><td>${cashSell}</td>`;
+    tableBody.appendChild(tr);
+  });
+})
+.catch(err => { console.error(err); document.querySelector("#goldTable tbody").innerHTML="<tr><td colspan='3'>無法載入資料</td></tr>"; });
+</script>
 </body>
+</html>
