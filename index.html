@@ -18,8 +18,8 @@
   OneSignalDeferred.push(async function(OneSignal) {
     await OneSignal.init({
       appId: "2e011829-ac0c-4e0e-923b-a3fc41c0e66a",
-      // serviceWorkerPath: '/RateTracker/OneSignalSDK.sw.js',
-      // serviceWorkerParam: { scope: '/RateTracker/' },
+      serviceWorkerPath: '/RateTracker/OneSignalSDK.sw.js',
+      serviceWorkerParam: { scope: '/RateTracker/' },
       notifyButton: {
         enable: true, // 顯示訂閱按鈕
       },
